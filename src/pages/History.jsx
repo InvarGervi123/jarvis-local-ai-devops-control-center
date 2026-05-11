@@ -17,7 +17,8 @@ export default function History() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await fetch('http://localhost:5000/api/ai/history', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${API_URL}/api/ai/history`, {
         headers: { 'x-auth-token': token }
       });
       const data = await res.json();
@@ -59,7 +60,8 @@ export default function History() {
     if (!window.confirm("Purge this record from the grid?")) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/ai/history/${id}`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${API_URL}/api/ai/history/${id}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': token }
       });
@@ -97,7 +99,7 @@ export default function History() {
 
       <div className="glass-panel table-container">
         {loading ? (
-           <div className="loading-state">Syncing data from Firestore...</div>
+           <div className="loading-state">Syncing data from MongoDB...</div>
         ) : filteredHistory.length === 0 ? (
            <div className="empty-state">No matching records found.</div>
         ) : (

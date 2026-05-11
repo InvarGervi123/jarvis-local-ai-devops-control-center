@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, 
   AreaChart, Area, 
@@ -8,80 +8,137 @@ import {
 import { Zap, Activity, Brain, Clock } from 'lucide-react';
 import './Analytics.css';
 
-const usageData = [
-  { name: 'Mon', summarize: 400, explain: 240, rewrite: 240 },
-  { name: 'Tue', summarize: 300, explain: 139, rewrite: 221 },
-  { name: 'Wed', summarize: 200, explain: 980, rewrite: 229 },
-  { name: 'Thu', summarize: 278, explain: 390, rewrite: 200 },
-  { name: 'Fri', summarize: 189, explain: 480, rewrite: 218 },
-  { name: 'Sat', summarize: 239, explain: 380, rewrite: 250 },
-  { name: 'Sun', summarize: 349, explain: 430, rewrite: 210 },
-];
-
-const efficiencyData = [
-  { name: 'Week 1', score: 65 },
-  { name: 'Week 2', score: 72 },
-  { name: 'Week 3', score: 85 },
-  { name: 'Week 4', score: 94 },
-];
-
-const actionDistribution = [
-  { name: 'Summarize', value: 400 },
-  { name: 'Explain', value: 300 },
-  { name: 'Rewrite', value: 300 },
-  { name: 'Custom', value: 200 },
-];
 const COLORS = ['#00d2ff', '#3a7bd5', '#10b981', '#f59e0b'];
 
 export default function Analytics() {
+  const [usageData, setUsageData] = useState([]);
+  const [actionDistribution, setActionDistribution] = useState([]);
+  const [stats, setStats] = useState({ totalProcessed: 0, tokensExpended: 0, timeSaved: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadAnalytics() {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${API_URL}/api/ai/history`, {
+          headers: { 'x-auth-token': token }
+        });
+        const historyData = await res.json();
+        
+        if (res.ok) {
+          // Process Total Stats
+          const total = historyData.length;
+          setStats({
+            totalProcessed: total,
+            tokensExpended: total * 150, // rough estimate
+            timeSaved: Math.round((total * 5) / 60) // rough estimate: 5 minutes saved per query
+          });
+
+          // Process Action Distribution (Pie Chart)
+          const distMap = {};
+          historyData.forEach(item => {
+            const type = item.actionType || 'custom';
+            distMap[type] = (distMap[type] || 0) + 1;
+          });
+          const distArray = Object.keys(distMap).map(key => ({ name: key, value: distMap[key] }));
+          setActionDistribution(distArray);
+
+          // Process Weekly Usage Data (Bar Chart)
+          const now = new Date();
+          const daysMap = {};
+          for(let i = 6; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(now.getDate() - i);
+            const dayName = d.toLocaleDateString('en-US', {weekday: 'short'});
+            daysMap[dayName] = { name: dayName, summarize: 0, explain: 0, rewrite: 0 };
+          }
+
+          historyData.forEach(item => {
+            if (item.createdAt) {
+              const dateObj = new Date(item.createdAt);
+              const diffMs = now - dateObj;
+              if (diffMs <= 7 * 24 * 60 * 60 * 1000) { // Within last 7 days
+                const dayName = dateObj.toLocaleDateString('en-US', {weekday: 'short'});
+                if(daysMap[dayName]) {
+                  const type = item.actionType || 'summarize';
+                  if(daysMap[dayName][type] !== undefined) {
+                    daysMap[dayName][type]++;
+                  } else {
+                    daysMap[dayName]['summarize']++; // fallback
+                  }
+                }
+              }
+            }
+          });
+          setUsageData(Object.values(daysMap));
+        }
+      } catch (err) {
+        console.error("Failed to load analytics", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAnalytics();
+  }, []);
+
+  const efficiencyData = [
+    { name: 'Week 1', score: 65 },
+    { name: 'Week 2', score: 72 },
+    { name: 'Week 3', score: 85 },
+    { name: 'Week 4', score: Math.min(100, 85 + (stats.totalProcessed / 10)) }, // Dynamic based on usage
+  ];
+
   return (
     <div className="page-wrapper analytics-page">
       <div className="header-bar">
-        <h1 className="page-title text-gradient">S.I.V.R.A.J Analytics Core</h1>
+        <h1 className="page-title text-gradient">J.A.R.V.I.S Analytics Core</h1>
       </div>
 
+      {loading ? (
+         <div style={{color: '#8b9bb4', padding: '20px'}}>Calculating metrics...</div>
+      ) : (
       <div className="analytics-grid">
         <div className="analytics-sidebar">
-          
           <div className="glass-panel metric-card">
             <div className="metric-header">
               <Zap color="#00d2ff"/>
               <span>Total Processed</span>
             </div>
-            <h2>14,592</h2>
-            <p className="trend positive">+14% from last month</p>
+            <h2>{stats.totalProcessed}</h2>
+            <p className="trend positive">MongoDB Sync Active</p>
           </div>
 
           <div className="glass-panel metric-card">
             <div className="metric-header">
               <Brain color="#00d2ff"/>
-              <span>Tokens Expended</span>
+              <span>Est. Tokens Expended</span>
             </div>
-            <h2>1.2M</h2>
-            <p className="trend warning">Approaching quota</p>
+            <h2>{stats.tokensExpended}</h2>
+            <p className="trend warning">Operating Normally</p>
           </div>
 
           <div className="glass-panel metric-card">
             <div className="metric-header">
               <Clock color="#00d2ff"/>
-              <span>Time Saved</span>
+              <span>Est. Time Saved</span>
             </div>
-            <h2>42 Hours</h2>
-            <p className="trend positive">+5 hours this week</p>
+            <h2>{stats.timeSaved} Hours</h2>
+            <p className="trend positive">Based on 5 min/query</p>
           </div>
-
         </div>
 
         <div className="analytics-main">
-          
           <div className="glass-panel chart-box">
-            <h3>Action Throughput (Weekly)</h3>
+            <h3>Action Throughput (Last 7 Days)</h3>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={usageData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/>
                   <XAxis dataKey="name" stroke="#8b9bb4"/>
-                  <YAxis stroke="#8b9bb4"/>
+                  <YAxis stroke="#8b9bb4" allowDecimals={false}/>
                   <Tooltip contentStyle={{backgroundColor: 'rgba(7,9,15,0.9)', borderColor: '#00d2ff'}}/>
                   <Legend />
                   <Bar dataKey="summarize" stackId="a" fill="#00d2ff" />
@@ -133,9 +190,9 @@ export default function Analytics() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
+      )}
     </div>
   );
 }

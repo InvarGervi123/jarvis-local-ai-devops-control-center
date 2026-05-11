@@ -34,7 +34,7 @@ export default function Settings() {
     setIsSaving(true);
     try {
       localStorage.setItem(`settings_${currentUser.email}`, JSON.stringify(settings));
-      alert('Settings saved locally to S.I.V.R.A.J Network!');
+      alert('Settings saved locally to J.A.R.V.I.S Network!');
     } catch (err) {
       console.error(err);
       alert('Failed to save settings.');
@@ -135,11 +135,11 @@ export default function Settings() {
           {activeTab === 'privacy' && (
             <div className="tab-pane">
                <h2>Privacy & Sync</h2>
-               <p className="pane-desc">Manage what data is synced to the S.I.V.R.A.J network.</p>
+               <p className="pane-desc">Manage what data is synced to the J.A.R.V.I.S network.</p>
                
                <div className="form-check">
                   <input type="checkbox" id="sync" defaultChecked />
-                  <label htmlFor="sync">Sync Conversation History to Firestore</label>
+                  <label htmlFor="sync">Sync Conversation History to MongoDB</label>
                </div>
                <div className="form-check" style={{marginTop: '1rem'}}>
                   <input type="checkbox" id="telemetry" />

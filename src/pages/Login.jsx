@@ -39,7 +39,7 @@ export default function Login() {
           <span className="logo-icon-large">💠</span>
           <h2>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
           <p className="subtitle">
-            {isLogin ? 'Access your S.I.V.R.A.J Dashboard' : 'Join the next-gen AI assistant network'}
+            {isLogin ? 'Access your J.A.R.V.I.S Dashboard' : 'Join the next-gen AI assistant network'}
           </p>
         </div>
 

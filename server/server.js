@@ -9,17 +9,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Database Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ MongoDB connected via Mongoose'))
-.catch(err => console.error('❌ MongoDB connection error:', err.message));
+// Database Connection with Cloud -> Local Fallback
+const connectDB = async () => {
+  try {
+    console.log('Connecting to MongoDB Cloud (Atlas)...');
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ MongoDB Cloud (Atlas) connected successfully');
+  } catch (cloudErr) {
+    console.warn(`⚠️ Cloud DB connection failed (${cloudErr.message}). Falling back to Local MongoDB...`);
+    try {
+      const localUri = process.env.LOCAL_MONGO_URI || 'mongodb://127.0.0.1:27017/jarvis';
+      await mongoose.connect(localUri);
+      console.log('✅ Local MongoDB connected successfully');
+    } catch (localErr) {
+      console.error('❌ CRITICAL: Both Cloud and Local MongoDB connections failed.', localErr.message);
+    }
+  }
+};
+connectDB();
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/ai', require('./routes/ai'));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 S.I.V.R.A.J Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 J.A.R.V.I.S Server running on port ${PORT}`));

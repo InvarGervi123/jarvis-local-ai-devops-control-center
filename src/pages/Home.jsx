@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { BrainCircuit, Zap, Shield, Globe, Cpu, Sparkles } from 'lucide-react';
+import { BrainCircuit, Zap, Shield, Globe, Cpu, Sparkles, Server, CheckCircle2, ChevronRight } from 'lucide-react';
 import './Home.css';
 
 export default function Home() {
@@ -10,14 +10,17 @@ export default function Home() {
 
   return (
     <div className="landing-page">
-      {/* Navbar for Landing Page */}
+      {/* Navbar */}
       <nav className="landing-nav">
-        <div className="logo-glow">JARVIS</div>
-        <div className="nav-links">
+        <div className="logo-glow">J.A.R.V.I.S</div>
+        <div className="nav-links hidden-mobile">
           <a href="#features">Features</a>
-          <a href="#demo">Integration</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
+        </div>
+        <div className="nav-actions">
           {currentUser ? (
-            <button onClick={() => navigate('/dashboard')} className="btn-primary">Enter Dashboard</button>
+            <button onClick={() => navigate('/dashboard')} className="btn-primary">Enter Core</button>
           ) : (
             <button onClick={() => navigate('/login')} className="btn-primary">Initialize Access</button>
           )}
@@ -27,24 +30,25 @@ export default function Home() {
       {/* Hero Section */}
       <header className="hero-section">
         <div className="hero-content">
-          <div className="badge-glow"><Sparkles size={16}/> S.I.V.R.A.J Network Active</div>
+          <div className="badge-glow"><Sparkles size={16}/> System OS Version 2.0 Online</div>
           <h1 className="hero-title">Next-Gen Browsing <br/><span className="text-gradient">Intelligence</span></h1>
           <p className="hero-subtitle">
             Highlight text anywhere. Execute AI commands instantly. 
-            Summarize, explain, and rewrite across the web with the Jarvis OS Extension.
+            Summarize, explain, and rewrite across the web with the J.A.R.V.I.S Web OS.
           </p>
           <div className="hero-actions">
             {!currentUser ? (
-              <Link to="/login" className="btn-primary" style={{padding: '16px 32px', fontSize: '1.2rem'}}>Start Terminal</Link>
+              <Link to="/login" className="btn-primary" style={{padding: '16px 32px', fontSize: '1.2rem'}}>Start Terminal <ChevronRight size={20}/></Link>
             ) : (
-              <Link to="/dashboard" className="btn-primary" style={{padding: '16px 32px', fontSize: '1.2rem'}}>Open Dashboard</Link>
+              <Link to="/dashboard" className="btn-primary" style={{padding: '16px 32px', fontSize: '1.2rem'}}>Open Dashboard <ChevronRight size={20}/></Link>
             )}
-            <a href="#features" className="btn-secondary" style={{padding: '16px 32px', fontSize: '1.2rem'}}>View Docs</a>
+            <a href="#features" className="btn-secondary" style={{padding: '16px 32px', fontSize: '1.2rem'}}>View Specs</a>
           </div>
         </div>
         <div className="hero-visual">
           <div className="glow-sphere"></div>
           <div className="glow-sphere second"></div>
+          <div className="hologram-circle"></div>
         </div>
       </header>
 
@@ -52,7 +56,7 @@ export default function Home() {
       <section id="features" className="features-section">
         <div className="section-header">
           <h2>Core Capabilities</h2>
-          <p>Engineered for maximum internet efficiency.</p>
+          <p>Engineered for maximum web efficiency and dynamic processing.</p>
         </div>
         <div className="features-grid">
           <FeatureCard 
@@ -66,27 +70,92 @@ export default function Home() {
             desc="Powered by Google's latest hyper-fast LLM architectures for real-time natural language processing."
           />
           <FeatureCard 
-            icon={<Shield size={32} color="#00d2ff" />}
-            title="Data Security"
-            desc="Your query history is securely synced to your personal Firebase Firestore identity."
+            icon={<Server size={32} color="#00d2ff" />}
+            title="MongoDB Sync"
+            desc="Your query history is securely synced to a centralized MongoDB Atlas cloud cluster via Node.js."
           />
           <FeatureCard 
-            icon={<Globe size={32} color="#00d2ff" />}
-            title="Universal Translation"
-            desc="Dynamically translate explanations and summaries into dozens of languages via settings."
+            icon={<Shield size={32} color="#00d2ff" />}
+            title="Hybrid BYOK"
+            desc="Bring your own key (BYOK) securely. Keys are transmitted via encrypted headers, never saved to DB."
           />
           <FeatureCard 
             icon={<Cpu size={32} color="#00d2ff" />}
             title="Centralized Analytics"
             desc="Monitor your interaction metrics, token usage, and search patterns from an Iron Man inspired dashboard."
           />
+          <FeatureCard 
+            icon={<Globe size={32} color="#00d2ff" />}
+            title="Universal Translation"
+            desc="Dynamically translate explanations and summaries into dozens of languages seamlessly."
+          />
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="pricing-section">
+        <div className="section-header">
+          <h2>Access Tier Authorization</h2>
+          <p>Select your operational capacity.</p>
+        </div>
+        <div className="pricing-grid">
+          <div className="glass-panel pricing-card">
+            <h3>Operator</h3>
+            <div className="price"><span className="currency">$</span>0<span className="period">/mo</span></div>
+            <ul className="pricing-features">
+              <li><CheckCircle2 size={18} color="#00d2ff"/> Hybrid BYOK Access</li>
+              <li><CheckCircle2 size={18} color="#00d2ff"/> 50 Queries / Day</li>
+              <li><CheckCircle2 size={18} color="#00d2ff"/> Basic Analytics</li>
+              <li className="disabled">Advanced Document Review</li>
+            </ul>
+            <button className="btn-secondary w-full" onClick={() => navigate('/login')}>Initialize Free</button>
+          </div>
+          <div className="glass-panel pricing-card premium">
+            <div className="popular-badge">J.A.R.V.I.S Core</div>
+            <h3>Avenger</h3>
+            <div className="price"><span className="currency">$</span>15<span className="period">/mo</span></div>
+            <ul className="pricing-features">
+              <li><CheckCircle2 size={18} color="#00d2ff"/> Unlimited Queries</li>
+              <li><CheckCircle2 size={18} color="#00d2ff"/> No BYOK Required (Included)</li>
+              <li><CheckCircle2 size={18} color="#00d2ff"/> Full Analytics Suite</li>
+              <li><CheckCircle2 size={18} color="#00d2ff"/> Advanced Document Review</li>
+            </ul>
+            <button className="btn-primary w-full" onClick={() => navigate('/login')}>Upgrade Authorization</button>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="faq-section">
+        <div className="section-header">
+          <h2>System Diagnostics (FAQ)</h2>
+          <p>Common queries from field operatives.</p>
+        </div>
+        <div className="faq-grid">
+          <div className="glass-panel faq-item">
+            <h4>Is my data secure?</h4>
+            <p>Yes. All text selections and AI responses are securely transmitted via JWT-authenticated Node.js endpoints and stored in your private MongoDB cluster.</p>
+          </div>
+          <div className="faq-item glass-panel">
+            <h4>How does Hybrid BYOK work?</h4>
+            <p>You can input your own Google Gemini API key into the extension. It is saved locally in your browser and sent securely via headers to process AI requests.</p>
+          </div>
+          <div className="faq-item glass-panel">
+            <h4>Does it work on any website?</h4>
+            <p>Yes, the Chrome extension injects a content script that works universally across standard webpages.</p>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="landing-footer">
-        <div className="logo-glow" style={{fontSize: '1.2rem'}}>JARVIS</div>
-        <p>Advanced Agentic Web Interface © 2026</p>
+        <div className="logo-glow" style={{fontSize: '1.2rem'}}>J.A.R.V.I.S</div>
+        <div className="footer-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">System Status</a>
+        </div>
+        <p>Advanced Agentic Web Interface © 2026. All Systems Nominal.</p>
       </footer>
     </div>
   );

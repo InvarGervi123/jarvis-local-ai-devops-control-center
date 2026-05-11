@@ -4,6 +4,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnRewrite = document.getElementById('btn-rewrite');
   const responseBox = document.getElementById('response-box');
 
+  // Settings Elements
+  const btnToggleSettings = document.getElementById('btn-toggle-settings');
+  const settingsArea = document.getElementById('settings-area');
+  const btnSaveKey = document.getElementById('btn-save-key');
+  const apiKeyInput = document.getElementById('api-key-input');
+  const apiStatus = document.getElementById('api-status');
+
+  // Toggle Settings Visibility
+  btnToggleSettings.addEventListener('click', () => {
+    settingsArea.classList.toggle('show');
+  });
+
+  // Load existing API Key
+  chrome.storage.local.get(['geminiApiKey'], (result) => {
+    if (result.geminiApiKey) {
+      apiStatus.textContent = "API Key: Configured";
+      apiStatus.className = "api-status active";
+    }
+  });
+
+  // Save API Key
+  btnSaveKey.addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (key) {
+      chrome.storage.local.set({ geminiApiKey: key }, () => {
+        apiStatus.textContent = "API Key: Saved Successfully";
+        apiStatus.className = "api-status active";
+        apiKeyInput.value = "";
+      });
+    }
+  });
+
   function handleAction(actionType) {
     responseBox.textContent = `Processing ${actionType}...`;
     responseBox.style.color = '#00d2ff';

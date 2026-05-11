@@ -4,7 +4,7 @@ export default function DocumentReview() {
     <div className="page-wrapper">
       <h1 className="page-title text-gradient">Document Review</h1>
       <div className="glass-panel" style={{height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-        <h2 style={{color: '#8b9bb4'}}>S.I.V.R.A.J Document Processing Engine Initializing...</h2>
+        <h2 style={{color: '#8b9bb4'}}>J.A.R.V.I.S Document Processing Engine Initializing...</h2>
       </div>
     </div>
   );
