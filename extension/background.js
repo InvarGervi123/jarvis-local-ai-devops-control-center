@@ -47,7 +47,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       })
       .then(res => res.json())
       .then(data => {
-        if (!data.success) throw new Error(data.data || "Unknown server error");
+        if (data.success === false || data.msg) {
+           throw new Error(data.msg || data.data || "Unknown server error");
+        }
         sendResponse({ success: true, data: data.data });
       })
       .catch(error => {
