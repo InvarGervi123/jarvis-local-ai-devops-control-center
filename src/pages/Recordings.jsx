@@ -142,16 +142,11 @@ export default function Recordings() {
         <h1 className="page-title text-gradient">Audio Surveillance & Logs</h1>
         <div className="header-actions">
           <button 
-            className="btn-primary" 
-            style={{
-              backgroundColor: isRecording ? 'rgba(239, 68, 68, 0.8)' : 'rgba(239, 68, 68, 0.2)', 
-              borderColor: '#ef4444', 
-              color: isRecording ? '#fff' : '#f87171',
-              animation: isRecording ? 'pulse 1.5s infinite' : 'none'
-            }}
+            className={`btn-primary ${isRecording ? 'recording-pulse' : ''}`} 
             onClick={isRecording ? stopRecording : startRecording}
+            style={isRecording ? { background: 'rgba(255, 50, 50, 0.2)', borderColor: 'rgba(255, 50, 50, 0.8)', color: '#ff4444', boxShadow: '0 0 20px rgba(255, 50, 50, 0.4)' } : {}}
           >
-            {isRecording ? <><StopCircle size={18} /> Stop Recording</> : <><Mic size={18} /> Initialize Recording</>}
+            {isRecording ? <><StopCircle size={18} className="pulse-icon" /> Stop Recording ({recordingSeconds}s)</> : <><Mic size={18} /> Initialize Recording</>}
           </button>
         </div>
       </div>
