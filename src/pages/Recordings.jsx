@@ -101,6 +101,7 @@ export default function Recordings() {
     try {
       const token = localStorage.getItem('token');
       const geminiKey = localStorage.getItem('gemini_api_key') || '';
+      const groqKey = localStorage.getItem('groq_api_key') || '';
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       
       const res = await fetch(`${API_URL}/api/ai/process`, {
@@ -108,7 +109,8 @@ export default function Recordings() {
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token,
-          'x-gemini-key': geminiKey
+          'x-gemini-key': geminiKey,
+          'x-groq-key': groqKey
         },
         body: JSON.stringify({ type: 'transcribe', audio: activeRecording.base64 })
       });

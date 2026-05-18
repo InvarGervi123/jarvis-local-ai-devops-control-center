@@ -14,14 +14,23 @@ export default function Settings() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    async function loadSettings() {
-      if (!currentUser) return;
+    if (currentUser) {
       const saved = localStorage.getItem(`settings_${currentUser.email}`);
+      const savedGeminiKey = localStorage.getItem('gemini_api_key');
+      const savedGroqKey = localStorage.getItem('groq_api_key');
       if (saved) {
-        setSettings(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (savedGeminiKey) parsed.geminiKey = savedGeminiKey;
+        if (savedGroqKey) parsed.groqKey = savedGroqKey;
+        setSettings(parsed);
+      } else {
+        setSettings(prev => ({
+          ...prev, 
+          geminiKey: savedGeminiKey || '',
+          groqKey: savedGroqKey || ''
+        }));
       }
     }
-    loadSettings();
   }, [currentUser]);
 
   const handleChange = (e) => {
@@ -38,6 +47,11 @@ export default function Settings() {
         localStorage.setItem('gemini_api_key', settings.geminiKey);
       } else {
         localStorage.removeItem('gemini_api_key');
+      }
+      if (settings.groqKey) {
+        localStorage.setItem('groq_api_key', settings.groqKey);
+      } else {
+        localStorage.removeItem('groq_api_key');
       }
       alert('Settings saved locally to J.A.R.V.I.S Network!');
     } catch (err) {
@@ -102,8 +116,8 @@ export default function Settings() {
               <h2>AI Core Settings</h2>
               <p className="pane-desc">Configure how Gemini 1.5 interacts with your browsing.</p>
 
-              <div className="form-group" style={{ marginBottom: '2rem' }}>
-                <label>Gemini API Key (BYOK)</label>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label>Gemini API Key (For Vision & Text)</label>
                 <input 
                   type="password" 
                   name="geminiKey" 
@@ -112,7 +126,19 @@ export default function Settings() {
                   className="cyber-input" 
                   placeholder="AIzaSy..." 
                 />
-                <small style={{color: '#64748b', marginTop: '8px', display:'block'}}>Your key is encrypted and stored locally in your browser. It is never saved to our database.</small>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '2rem' }}>
+                <label>Groq API Key (For Voice Transcription)</label>
+                <input 
+                  type="password" 
+                  name="groqKey" 
+                  value={settings.groqKey || ''} 
+                  onChange={handleChange} 
+                  className="cyber-input" 
+                  placeholder="gsk_..." 
+                />
+                <small style={{color: '#64748b', marginTop: '8px', display:'block'}}>Your keys are encrypted and stored locally in your browser. They are never saved to our database.</small>
               </div>
 
               <div className="form-group">

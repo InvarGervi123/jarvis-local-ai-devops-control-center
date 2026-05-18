@@ -3,6 +3,10 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Conversation = require('../models/Conversation');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require("groq-sdk");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
 // POST /api/ai/process
 // Request from Chrome Extension (requires JWT Auth token synced from Jarvis Web App)
@@ -70,29 +74,54 @@ router.post('/process', auth, async (req, res) => {
     const { audio } = req.body;
     if (!audio) return res.status(400).json({ success: false, data: "No audio provided" });
     
-    // audio is expected to be a data URL: "data:audio/webm;codecs=opus;base64,GkXfo59ChoEB..."
-    // Extract mime type and base64. Note: base64 can have padding, so just split at base64,
+    const groqKey = req.header('x-groq-key');
+    if (!groqKey) return res.status(400).json({ success: false, data: "Please configure your Groq API Key in settings." });
+    
     const [header, base64Data] = audio.split('base64,');
     if (!base64Data) return res.status(400).json({ success: false, data: "Invalid audio format" });
     
-    const mimeTypeMatch = header.match(/data:([^;]+);/);
-    const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'audio/webm'; // Fallback
+    try {
+      // Create temp file for Groq Whisper
+      const buffer = Buffer.from(base64Data, 'base64');
+      const tempFilePath = path.join(os.tmpdir(), `audio_${Date.now()}.webm`);
+      fs.writeFileSync(tempFilePath, buffer);
 
-    imageParts = [
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType
-        }
-      }
-    ];
+      const groq = new Groq({ apiKey: groqKey });
+      
+      // 1. Audio to Text via Whisper
+      const transcription = await groq.audio.transcriptions.create({
+        file: fs.createReadStream(tempFilePath),
+        model: "whisper-large-v3",
+        response_format: "json",
+      });
+      
+      fs.unlinkSync(tempFilePath); // Cleanup temp file
+      
+      // 2. Format with Llama 3.1
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: "system", content: "You are an expert transcriber. Extract keywords and estimate confidence. Return ONLY a valid JSON object without any markdown wrapping: {\"text\": \"<exact original text>\", \"confidence\": 95, \"keywords\": [\"kw1\", \"kw2\"]}" },
+          { role: "user", content: `Format this transcription: ${transcription.text}` }
+        ],
+        model: "llama-3.1-8b-instant",
+      });
 
-    prompt = `You are an expert transcriber. Listen to the provided audio and transcribe it accurately. Return ONLY a valid JSON object without any markdown wrapping. The JSON must have the following structure:
-    {
-      "text": "<The full accurate transcription of the audio>",
-      "confidence": <integer between 0 and 100 representing how confident you are in the transcription>,
-      "keywords": ["<keyword1>", "<keyword2>", "<keyword3>"]
-    }`;
+      const aiResponseText = completion.choices[0].message.content;
+
+      // Save to MongoDB
+      const newConversation = new Conversation({
+        userId: req.user.id,
+        actionType: type,
+        selectedText: "[Audio Transcription Request]",
+        aiResponse: aiResponseText
+      });
+      await newConversation.save();
+
+      return res.json({ success: true, data: aiResponseText });
+    } catch (err) {
+      console.error("Groq Processing Error:", err);
+      return res.status(500).json({ success: false, data: "Groq AI Processing Error: " + err.message });
+    }
   } else {
     return res.status(400).json({ success: false, data: "Invalid action type" });
   }
