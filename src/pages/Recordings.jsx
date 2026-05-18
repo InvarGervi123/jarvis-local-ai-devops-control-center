@@ -17,9 +17,20 @@ export default function Recordings() {
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
 
+  // Custom Audio Player & Visualizer State
+  const audioRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const sourceRef = useRef(null);
+  const animationRef = useRef(null);
+  const waveformRefs = useRef([]);
+
   const formatDuration = (totalSeconds) => {
+    if (isNaN(totalSeconds)) return "00:00";
     const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
@@ -75,6 +86,53 @@ export default function Recordings() {
     }
   };
 
+  React.useEffect(() => {
+    if (activeRecording && audioRef.current && !sourceRef.current) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioContextRef.current = new AudioContext();
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        analyserRef.current.fftSize = 64; // 32 bins
+        sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+        sourceRef.current.connect(analyserRef.current);
+        analyserRef.current.connect(audioContextRef.current.destination);
+      } catch (err) {
+        console.error("Audio Context Error:", err);
+      }
+    }
+  }, [activeRecording]);
+
+  React.useEffect(() => {
+    const draw = () => {
+      if (isPlaying && analyserRef.current) {
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+        
+        for (let i = 0; i < 40; i++) {
+          if (waveformRefs.current[i]) {
+            const value = dataArray[i] || 0;
+            const height = Math.max(10, (value / 255) * 100);
+            waveformRefs.current[i].style.height = `${height}%`;
+            waveformRefs.current[i].style.opacity = height > 20 ? '1' : '0.4';
+            waveformRefs.current[i].style.boxShadow = height > 50 ? '0 0 10px var(--primary-cyan)' : 'none';
+          }
+        }
+      } else if (!isPlaying) {
+        for (let i = 0; i < 40; i++) {
+          if (waveformRefs.current[i]) {
+            waveformRefs.current[i].style.height = '10%';
+            waveformRefs.current[i].style.boxShadow = 'none';
+            waveformRefs.current[i].style.opacity = '0.3';
+          }
+        }
+      }
+      animationRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [isPlaying]);
+
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
@@ -85,12 +143,34 @@ export default function Recordings() {
 
   const handlePlay = (rec) => {
     setActiveRecording(rec);
-    setIsPlaying(true);
+    setIsPlaying(false);
     setTranscription(null);
   };
 
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
+  const customTogglePlay = () => {
+    if (!audioRef.current) return;
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) setDuration(audioRef.current.duration);
+  };
+
+  const handleSeek = (e) => {
+    const time = Number(e.target.value);
+    if (audioRef.current) audioRef.current.currentTime = time;
+    setCurrentTime(time);
   };
 
   const handleTranscribe = async () => {
@@ -204,25 +284,44 @@ export default function Recordings() {
                   {[...Array(40)].map((_, i) => (
                     <div 
                       key={i} 
-                      className={`waveform-bar ${isPlaying ? 'animating' : ''}`}
-                      style={{ 
-                        height: isPlaying ? `${Math.random() * 80 + 20}%` : '10%',
-                        animationDelay: `${i * 0.05}s`
-                      }}
+                      ref={el => waveformRefs.current[i] = el}
+                      className={`waveform-bar`}
+                      style={{ height: '10%' }}
                     ></div>
                   ))}
                   <div className="progress-line"></div>
                 </div>
 
-                <div className="real-audio-player">
+                <div className="custom-audio-player" style={{ display: 'flex', alignItems: 'center', gap: '15px', background: 'rgba(0, 0, 0, 0.4)', padding: '10px 15px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                   <audio 
-                    controls 
+                    ref={audioRef}
                     src={activeRecording.base64} 
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                     onEnded={() => setIsPlaying(false)}
-                    style={{ width: '100%', height: '40px', borderRadius: '8px' }}
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    style={{ display: 'none' }}
                   />
+                  <button 
+                    onClick={customTogglePlay} 
+                    style={{ background: 'var(--primary-cyan)', color: '#000', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 0 10px rgba(0, 210, 255, 0.4)' }}
+                  >
+                    {isPlaying ? <Pause size={20} fill="currentColor"/> : <Play size={20} fill="currentColor" style={{ marginLeft: '3px' }}/>}
+                  </button>
+                  
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <span style={{ color: '#00d2ff', fontSize: '0.9rem', fontFamily: 'monospace' }}>{formatDuration(currentTime)}</span>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max={duration || 1} 
+                      value={currentTime} 
+                      onChange={handleSeek}
+                      style={{ flex: 1, cursor: 'pointer', accentColor: '#00d2ff' }}
+                    />
+                    <span style={{ color: '#8b9bb4', fontSize: '0.9rem', fontFamily: 'monospace' }}>{formatDuration(duration)}</span>
+                  </div>
                 </div>
 
                 <div className="player-controls" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
