@@ -14,13 +14,15 @@ export default function DocumentReview() {
 
     try {
       const token = localStorage.getItem('token');
+      const geminiKey = localStorage.getItem('gemini_api_key') || '';
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       
       const res = await fetch(`${API_URL}/api/ai/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-auth-token': token
+          'x-auth-token': token,
+          'x-gemini-key': geminiKey
         },
         body: JSON.stringify({ type: 'review', text })
       });

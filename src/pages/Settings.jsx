@@ -34,6 +34,11 @@ export default function Settings() {
     setIsSaving(true);
     try {
       localStorage.setItem(`settings_${currentUser.email}`, JSON.stringify(settings));
+      if (settings.geminiKey) {
+        localStorage.setItem('gemini_api_key', settings.geminiKey);
+      } else {
+        localStorage.removeItem('gemini_api_key');
+      }
       alert('Settings saved locally to J.A.R.V.I.S Network!');
     } catch (err) {
       console.error(err);
@@ -95,7 +100,20 @@ export default function Settings() {
           {activeTab === 'ai' && (
             <div className="tab-pane">
               <h2>AI Core Settings</h2>
-              <p className="pane-desc">Configure how Gemini 2.5 interacts with your browsing.</p>
+              <p className="pane-desc">Configure how Gemini 1.5 interacts with your browsing.</p>
+
+              <div className="form-group" style={{ marginBottom: '2rem' }}>
+                <label>Gemini API Key (BYOK)</label>
+                <input 
+                  type="password" 
+                  name="geminiKey" 
+                  value={settings.geminiKey || ''} 
+                  onChange={handleChange} 
+                  className="cyber-input" 
+                  placeholder="AIzaSy..." 
+                />
+                <small style={{color: '#64748b', marginTop: '8px', display:'block'}}>Your key is encrypted and stored locally in your browser. It is never saved to our database.</small>
+              </div>
 
               <div className="form-group">
                 <label>Default Action on Selection</label>

@@ -10,10 +10,10 @@ router.post('/process', auth, async (req, res) => {
   const { type, text } = req.body;
   const language = "hebrew"; // Could read from user settings
 
-  // Hybrid BYOK Logic: Use personal key from extension header, or fallback to server env
-  const apiKeyToUse = req.header('x-gemini-key') || process.env.GEMINI_API_KEY;
+  // Strict BYOK Logic: The user must provide their own key via the extension or web app settings.
+  const apiKeyToUse = req.header('x-gemini-key');
   if (!apiKeyToUse) {
-    return res.status(400).json({ success: false, data: "Please configure your Gemini API Key in the extension settings." });
+    return res.status(400).json({ success: false, data: "Please configure your Gemini API Key in the settings." });
   }
 
   const dynamicGenAI = new GoogleGenerativeAI(apiKeyToUse);
