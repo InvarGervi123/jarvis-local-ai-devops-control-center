@@ -289,7 +289,7 @@ export default function Recordings() {
                       style={{ height: '10%' }}
                     ></div>
                   ))}
-                  <div className="progress-line"></div>
+                  {isPlaying && <div className="progress-line"></div>}
                 </div>
 
                 <div className="custom-audio-player" style={{ display: 'flex', alignItems: 'center', gap: '15px', background: 'rgba(0, 0, 0, 0.4)', padding: '10px 15px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
