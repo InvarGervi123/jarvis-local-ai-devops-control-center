@@ -66,25 +66,56 @@ router.post('/process', auth, async (req, res) => {
         { "type": "Accessibility" | "Layout" | "UI Component", "title": "<short title>", "desc": "<description of finding>", "isWarning": <boolean> }
       ]
     }`;
+  } else if (type === "transcribe") {
+    const { audio } = req.body;
+    if (!audio) return res.status(400).json({ success: false, data: "No audio provided" });
+    
+    // audio is expected to be a data URL: "data:audio/webm;codecs=opus;base64,GkXfo59ChoEB..."
+    // Extract mime type and base64. Note: base64 can have padding, so just split at base64,
+    const [header, base64Data] = audio.split('base64,');
+    if (!base64Data) return res.status(400).json({ success: false, data: "Invalid audio format" });
+    
+    const mimeTypeMatch = header.match(/data:([^;]+);/);
+    const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'audio/webm'; // Fallback
+
+    imageParts = [
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType
+        }
+      }
+    ];
+
+    prompt = `You are an expert transcriber. Listen to the provided audio and transcribe it accurately. Return ONLY a valid JSON object without any markdown wrapping. The JSON must have the following structure:
+    {
+      "text": "<The full accurate transcription of the audio>",
+      "confidence": <integer between 0 and 100 representing how confident you are in the transcription>,
+      "keywords": ["<keyword1>", "<keyword2>", "<keyword3>"]
+    }`;
   } else {
     return res.status(400).json({ success: false, data: "Invalid action type" });
   }
 
   try {
-    const model = dynamicGenAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = dynamicGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    // If it's a vision request, pass the imageParts and the prompt as an array
-    const requestPayload = type === "vision" ? [prompt, ...imageParts] : prompt;
+    // If it's a vision or audio request, pass the parts and the prompt as an array
+    const requestPayload = (type === "vision" || type === "transcribe") ? [prompt, ...imageParts] : prompt;
     
     const result = await model.generateContent(requestPayload);
     const response = await result.response;
     const aiResponseText = response.text();
 
-    // Securely save into MongoDB (skip saving the massive base64 image string to DB to save space)
+    // Securely save into MongoDB (skip saving massive base64 files to DB)
+    let safeSelectedText = text;
+    if (type === "vision") safeSelectedText = "[Image Analysis Request]";
+    if (type === "transcribe") safeSelectedText = "[Audio Transcription Request]";
+
     const newConversation = new Conversation({
       userId: req.user.id,
       actionType: type,
-      selectedText: type === "vision" ? "[Image Analysis Request]" : text,
+      selectedText: safeSelectedText,
       aiResponse: aiResponseText
     });
 

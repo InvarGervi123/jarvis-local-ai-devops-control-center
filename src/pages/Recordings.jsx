@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Mic, Play, Pause, Square, Volume2, FileText, Activity, Clock } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Mic, Play, Pause, Square, Volume2, FileText, Activity, Clock, StopCircle } from 'lucide-react';
 import './Recordings.css';
 
 export default function Recordings() {
@@ -7,13 +7,61 @@ export default function Recordings() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcription, setTranscription] = useState(null);
+  
+  // Audio Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [localRecordings, setLocalRecordings] = useState([]);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
-  const mockRecordings = [
-    { id: 1, title: 'Project Alpha Debrief', date: 'Oct 24, 2026', duration: '04:12', size: '3.2 MB' },
-    { id: 2, title: 'Client Meeting Notes', date: 'Oct 23, 2026', duration: '12:45', size: '8.1 MB' },
-    { id: 3, title: 'Personal Log - Stardate 412', date: 'Oct 21, 2026', duration: '02:30', size: '1.5 MB' },
-    { id: 4, title: 'Idea: Quantum Encryption', date: 'Oct 18, 2026', duration: '08:05', size: '5.4 MB' },
-  ];
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // Convert Blob to Base64
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64data = reader.result;
+          const newRec = {
+            id: Date.now(),
+            title: `Audio Log ${localRecordings.length + 1}`,
+            date: new Date().toLocaleDateString(),
+            duration: '00:00', // Complex to calculate exactly without parsing blob, placeholder
+            size: `${(audioBlob.size / 1024 / 1024).toFixed(2)} MB`,
+            base64: base64data
+          };
+          setLocalRecordings(prev => [newRec, ...prev]);
+        };
+
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+      alert("Error accessing microphone. Please allow permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
 
   const handlePlay = (rec) => {
     setActiveRecording(rec);
@@ -25,20 +73,43 @@ export default function Recordings() {
     setIsPlaying(!isPlaying);
   };
 
-  const handleTranscribe = () => {
-    if (!activeRecording) return;
+  const handleTranscribe = async () => {
+    if (!activeRecording || !activeRecording.base64) return;
     setIsTranscribing(true);
     setTranscription(null);
 
-    // Simulate AI Transcription
-    setTimeout(() => {
-      setIsTranscribing(false);
-      setTranscription({
-        text: "Audio log analysis complete. The subject discussed integrating quantum encryption protocols into the main server branch. Several vulnerabilities were noted in the legacy system, specifically regarding the handshake sequence. Recommendation is to proceed with the J.A.R.V.I.S automated patch.",
-        confidence: 98,
-        keywords: ['Quantum', 'Encryption', 'J.A.R.V.I.S', 'Vulnerabilities']
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      const res = await fetch(`${API_URL}/api/ai/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ type: 'transcribe', audio: activeRecording.base64 })
       });
-    }, 4000);
+
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.msg || data.data || 'Failed to transcribe audio');
+      
+      let parsedResults;
+      try {
+        const cleanJsonString = data.data.replace(/```json/g, '').replace(/```/g, '').trim();
+        parsedResults = JSON.parse(cleanJsonString);
+      } catch (parseError) {
+        throw new Error('AI returned an invalid format. Please try again.');
+      }
+
+      setTranscription(parsedResults);
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setIsTranscribing(false);
+    }
   };
 
   return (
@@ -46,8 +117,17 @@ export default function Recordings() {
       <div className="header-bar">
         <h1 className="page-title text-gradient">Audio Surveillance & Logs</h1>
         <div className="header-actions">
-          <button className="btn-primary" style={{backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444', color: '#f87171'}}>
-            <Mic size={18} /> Initialize Recording
+          <button 
+            className="btn-primary" 
+            style={{
+              backgroundColor: isRecording ? 'rgba(239, 68, 68, 0.8)' : 'rgba(239, 68, 68, 0.2)', 
+              borderColor: '#ef4444', 
+              color: isRecording ? '#fff' : '#f87171',
+              animation: isRecording ? 'pulse 1.5s infinite' : 'none'
+            }}
+            onClick={isRecording ? stopRecording : startRecording}
+          >
+            {isRecording ? <><StopCircle size={18} /> Stop Recording</> : <><Mic size={18} /> Initialize Recording</>}
           </button>
         </div>
       </div>
@@ -60,7 +140,8 @@ export default function Recordings() {
             <h3><Clock size={18}/> Encrypted Logs</h3>
           </div>
           <div className="recordings-list">
-            {mockRecordings.map(rec => (
+            {localRecordings.length === 0 && <p style={{color: '#8b9bb4', padding: '1rem'}}>No local recordings. Click Initialize Recording to start.</p>}
+            {localRecordings.map(rec => (
               <div 
                 key={rec.id} 
                 className={`recording-item ${activeRecording?.id === rec.id ? 'active' : ''}`}
