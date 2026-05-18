@@ -105,8 +105,8 @@ export default function Dashboard() {
       <div className="dashboard-grid">
         <div className="glass-panel chart-section">
           <h2 className="section-title"><Zap size={20} /> Weekly Activity</h2>
-          <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
+          <div style={{ width: '100%', height: 300, minHeight: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" stroke="#8b9bb4" />
@@ -125,14 +125,14 @@ export default function Dashboard() {
               <p className="empty-state">No activity records found. Waiting for input.</p>
             ) : (
               recentActivity.map(act => (
-                <div key={act.id} className="feed-item">
+                <div key={act._id || act.id} className="feed-item">
                   <div className="feed-icon">{act.actionType?.substring(0,1).toUpperCase()}</div>
                   <div className="feed-details">
                     <h4>{act.actionType}</h4>
                     <p>"{act.selectedText?.substring(0, 50)}..."</p>
                   </div>
                   <span className="feed-time">
-                    {act.createdAt ? new Date(act.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now'}
+                    {act.createdAt ? new Date(act.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now'}
                   </span>
                 </div>
               ))

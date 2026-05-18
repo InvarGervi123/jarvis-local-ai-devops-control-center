@@ -7,26 +7,48 @@ export default function DocumentReview() {
   const [isScanning, setIsScanning] = useState(false);
   const [results, setResults] = useState(null);
 
-  const handleScan = () => {
+  const handleScan = async () => {
     if (!text.trim()) return;
     setIsScanning(true);
     setResults(null);
 
-    // Simulate AI Processing time
-    setTimeout(() => {
-      setIsScanning(false);
-      setResults({
-        score: 87,
-        readability: 'Advanced',
-        tone: 'Professional',
-        wordCount: text.trim().split(/\s+/).length,
-        issues: [
-          { type: 'grammar', text: 'Consider replacing "utilize" with "use".' },
-          { type: 'style', text: 'Paragraph 2 is slightly verbose. Try breaking it into smaller sentences.' },
-          { type: 'clarity', text: 'The passive voice in the final sentence reduces impact.' }
-        ]
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      const res = await fetch(`${API_URL}/api/ai/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ type: 'review', text })
       });
-    }, 2500);
+
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.msg || data.data || 'Failed to process document');
+      
+      // Parse the JSON returned by Gemini
+      let parsedResults;
+      try {
+        // Sometimes Gemini adds markdown backticks even when told not to
+        const cleanJsonString = data.data.replace(/```json/g, '').replace(/```/g, '').trim();
+        parsedResults = JSON.parse(cleanJsonString);
+      } catch (parseError) {
+        throw new Error('AI returned an invalid format. Please try again.');
+      }
+
+      setResults({
+        ...parsedResults,
+        wordCount: text.trim().split(/\s+/).length
+      });
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (

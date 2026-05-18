@@ -33,25 +33,44 @@ export default function ScreenAnalysis() {
     e.preventDefault();
   };
 
-  const runAnalysis = () => {
+  const runAnalysis = async () => {
     if (!image) return;
     setIsScanning(true);
     setResults(null);
 
-    // Simulate AI Vision Analysis
-    setTimeout(() => {
-      setIsScanning(false);
-      setResults({
-        elements: 42,
-        contrastIssues: 3,
-        alignmentScore: 94,
-        findings: [
-          { type: 'UI Component', title: 'Navigation Bar', desc: 'Optimal spacing detected. Standard header height.' },
-          { type: 'Accessibility', title: 'Low Contrast', desc: 'Button text (#777) on dark background fails WCAG AA standards.', isWarning: true },
-          { type: 'Layout', title: 'Alignment Deviation', desc: 'Hero image is off-center by 12px relative to text block.', isWarning: true }
-        ]
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      const res = await fetch(`${API_URL}/api/ai/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ type: 'vision', image }) // Send base64 image
       });
-    }, 3000);
+
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.msg || data.data || 'Failed to analyze image');
+      
+      // Parse the JSON returned by Gemini
+      let parsedResults;
+      try {
+        const cleanJsonString = data.data.replace(/```json/g, '').replace(/```/g, '').trim();
+        parsedResults = JSON.parse(cleanJsonString);
+      } catch (parseError) {
+        throw new Error('AI returned an invalid format. Please try again.');
+      }
+
+      setResults(parsedResults);
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (

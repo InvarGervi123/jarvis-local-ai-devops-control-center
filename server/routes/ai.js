@@ -19,27 +19,72 @@ router.post('/process', auth, async (req, res) => {
   const dynamicGenAI = new GoogleGenerativeAI(apiKeyToUse);
 
   let prompt = "";
+  let imageParts = [];
+
   if (type === "summarize") {
     prompt = `Summarize the following text in ${language}, keep it concise:\n\n${text}`;
   } else if (type === "explain") {
     prompt = `Explain the following text in ${language} simply, as if to a beginner:\n\n${text}`;
   } else if (type === "rewrite") {
     prompt = `Rewrite the following text in ${language} to sound more professional and clear:\n\n${text}`;
+  } else if (type === "review") {
+    prompt = `Act as an expert copywriter. Analyze the following text and return ONLY a valid JSON object without any markdown wrapping. The JSON must have the following structure:
+    {
+      "score": <number between 0 and 100 representing overall quality>,
+      "readability": <string, e.g. "Advanced", "Intermediate", "Basic">,
+      "tone": <string, e.g. "Professional", "Casual", "Urgent">,
+      "issues": [
+        { "type": "grammar" | "style" | "clarity", "text": "<short description of issue>" }
+      ]
+    }
+    
+    Text to analyze:
+    ${text}`;
+  } else if (type === "vision") {
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ success: false, data: "No image provided" });
+    
+    // image is expected to be a data URL: "data:image/jpeg;base64,/9j/4AAQ..."
+    const mimeType = image.match(/data:([^;]+);/)[1];
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+
+    imageParts = [
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType
+        }
+      }
+    ];
+
+    prompt = `You are an expert UX/UI designer. Analyze this screenshot of a user interface. Return ONLY a valid JSON object without any markdown wrapping. The JSON must have the following structure:
+    {
+      "elements": <estimated number of distinct UI elements, integer>,
+      "contrastIssues": <number of potential contrast issues, integer>,
+      "alignmentScore": <number between 0 and 100 representing layout alignment>,
+      "findings": [
+        { "type": "Accessibility" | "Layout" | "UI Component", "title": "<short title>", "desc": "<description of finding>", "isWarning": <boolean> }
+      ]
+    }`;
   } else {
     return res.status(400).json({ success: false, data: "Invalid action type" });
   }
 
   try {
     const model = dynamicGenAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result = await model.generateContent(prompt);
+    
+    // If it's a vision request, pass the imageParts and the prompt as an array
+    const requestPayload = type === "vision" ? [prompt, ...imageParts] : prompt;
+    
+    const result = await model.generateContent(requestPayload);
     const response = await result.response;
     const aiResponseText = response.text();
 
-    // Securely save into MongoDB
+    // Securely save into MongoDB (skip saving the massive base64 image string to DB to save space)
     const newConversation = new Conversation({
       userId: req.user.id,
       actionType: type,
-      selectedText: text,
+      selectedText: type === "vision" ? "[Image Analysis Request]" : text,
       aiResponse: aiResponseText
     });
 
