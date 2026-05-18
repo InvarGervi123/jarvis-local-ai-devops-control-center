@@ -10,9 +10,17 @@ export default function Recordings() {
   
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [localRecordings, setLocalRecordings] = useState([]);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const timerRef = useRef(null);
+
+  const formatDuration = (totalSeconds) => {
+    const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   const startRecording = async () => {
     try {
@@ -20,12 +28,15 @@ export default function Recordings() {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      setRecordingSeconds(0);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = () => {
+        clearInterval(timerRef.current);
+        const finalDuration = recordingSeconds; // capture the current seconds
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         // Convert Blob to Base64
@@ -37,7 +48,7 @@ export default function Recordings() {
             id: Date.now(),
             title: `Audio Log ${localRecordings.length + 1}`,
             date: new Date().toLocaleDateString(),
-            duration: '00:00', // Complex to calculate exactly without parsing blob, placeholder
+            duration: formatDuration(finalDuration), 
             size: `${(audioBlob.size / 1024 / 1024).toFixed(2)} MB`,
             base64: base64data
           };
@@ -50,6 +61,12 @@ export default function Recordings() {
 
       mediaRecorder.start();
       setIsRecording(true);
+      
+      // Start Timer
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+
     } catch (err) {
       console.error("Microphone access denied:", err);
       alert("Error accessing microphone. Please allow permissions.");
@@ -60,6 +77,7 @@ export default function Recordings() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      clearInterval(timerRef.current);
     }
   };
 
