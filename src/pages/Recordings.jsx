@@ -15,6 +15,7 @@ export default function Recordings() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const timerRef = useRef(null);
+  const startTimeRef = useRef(null);
 
   const formatDuration = (totalSeconds) => {
     const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -29,6 +30,7 @@ export default function Recordings() {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       setRecordingSeconds(0);
+      startTimeRef.current = Date.now();
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
@@ -36,7 +38,7 @@ export default function Recordings() {
 
       mediaRecorder.onstop = () => {
         clearInterval(timerRef.current);
-        const finalDuration = recordingSeconds; // capture the current seconds
+        const finalDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         // Convert Blob to Base64
@@ -62,7 +64,7 @@ export default function Recordings() {
       mediaRecorder.start();
       setIsRecording(true);
       
-      // Start Timer
+      // Start Timer for UI
       timerRef.current = setInterval(() => {
         setRecordingSeconds(prev => prev + 1);
       }, 1000);
@@ -194,16 +196,14 @@ export default function Recordings() {
             </div>
           ) : (
             <div className="player-content">
-              
-              {/* Audio Visualizer */}
-              <div className="audio-visualizer">
+              {/* Audio Visualizer / Player */}
+              <div className="audio-visualizer" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <div className="visualizer-header">
                   <span className="rec-title">{activeRecording.title}</span>
-                  <span className="rec-time">01:23 / {activeRecording.duration}</span>
+                  <span className="rec-time">{activeRecording.duration}</span>
                 </div>
                 
-                <div className="waveform-container">
-                  {/* Generate dummy waveform bars */}
+                <div className="waveform-container" style={{ margin: '15px 0' }}>
                   {[...Array(40)].map((_, i) => (
                     <div 
                       key={i} 
@@ -214,21 +214,37 @@ export default function Recordings() {
                       }}
                     ></div>
                   ))}
-                  {/* Progress Line */}
                   <div className="progress-line"></div>
                 </div>
 
-                <div className="player-controls">
-                  <button className="control-btn"><Square size={20} fill="currentColor" onClick={() => setIsPlaying(false)}/></button>
-                  <button className="control-btn primary" onClick={togglePlay}>
-                    {isPlaying ? <Pause size={24} fill="currentColor"/> : <Play size={24} fill="currentColor"/>}
-                  </button>
+                <div className="real-audio-player">
+                  <audio 
+                    controls 
+                    src={activeRecording.base64} 
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onEnded={() => setIsPlaying(false)}
+                    style={{ width: '100%', height: '40px', borderRadius: '8px' }}
+                  />
+                </div>
+
+                <div className="player-controls" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+                  <a 
+                    href={activeRecording.base64} 
+                    download={`jarvis-log-${activeRecording.id}.webm`}
+                    className="btn-secondary"
+                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Volume2 size={16}/> Download Audio
+                  </a>
+
                   <button 
-                    className="btn-secondary transcribe-btn" 
+                    className="btn-primary transcribe-btn" 
                     onClick={handleTranscribe}
                     disabled={isTranscribing}
+                    style={{ flex: 1, marginLeft: '15px' }}
                   >
-                    <FileText size={16}/> {isTranscribing ? 'Processing...' : 'Transcribe AI'}
+                    <FileText size={16}/> {isTranscribing ? 'Processing AI...' : 'Transcribe AI'}
                   </button>
                 </div>
               </div>
