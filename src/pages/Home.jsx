@@ -15,7 +15,6 @@ export default function Home() {
         <div className="logo-glow">J.A.R.V.I.S</div>
         <div className="nav-links hidden-mobile">
           <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
           <a href="#faq">FAQ</a>
         </div>
         <div className="nav-actions">
@@ -89,39 +88,6 @@ export default function Home() {
             title="Universal Translation"
             desc="Dynamically translate explanations and summaries into dozens of languages seamlessly."
           />
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="pricing-section">
-        <div className="section-header">
-          <h2>Access Tier Authorization</h2>
-          <p>Select your operational capacity.</p>
-        </div>
-        <div className="pricing-grid">
-          <div className="glass-panel pricing-card">
-            <h3>Operator</h3>
-            <div className="price"><span className="currency">$</span>0<span className="period">/mo</span></div>
-            <ul className="pricing-features">
-              <li><CheckCircle2 size={18} color="#00d2ff"/> Hybrid BYOK Access</li>
-              <li><CheckCircle2 size={18} color="#00d2ff"/> 50 Queries / Day</li>
-              <li><CheckCircle2 size={18} color="#00d2ff"/> Basic Analytics</li>
-              <li className="disabled">Advanced Document Review</li>
-            </ul>
-            <button className="btn-secondary w-full" onClick={() => navigate('/login')}>Initialize Free</button>
-          </div>
-          <div className="glass-panel pricing-card premium">
-            <div className="popular-badge">J.A.R.V.I.S Core</div>
-            <h3>Avenger</h3>
-            <div className="price"><span className="currency">$</span>15<span className="period">/mo</span></div>
-            <ul className="pricing-features">
-              <li><CheckCircle2 size={18} color="#00d2ff"/> Unlimited Queries</li>
-              <li><CheckCircle2 size={18} color="#00d2ff"/> No BYOK Required (Included)</li>
-              <li><CheckCircle2 size={18} color="#00d2ff"/> Full Analytics Suite</li>
-              <li><CheckCircle2 size={18} color="#00d2ff"/> Advanced Document Review</li>
-            </ul>
-            <button className="btn-primary w-full" onClick={() => navigate('/login')}>Upgrade Authorization</button>
-          </div>
         </div>
       </section>
 
