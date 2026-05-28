@@ -114,31 +114,59 @@ export default function Settings() {
           {activeTab === 'ai' && (
             <div className="tab-pane">
               <h2>AI Core Settings</h2>
-              <p className="pane-desc">Configure how Gemini 1.5 interacts with your browsing.</p>
+              <p className="pane-desc">Configure how the local AI Core interacts with your browsing.</p>
 
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label>Gemini API Key (For Vision & Text)</label>
+              <div className="local-ai-status-card" style={{
+                background: 'rgba(0, 210, 255, 0.05)',
+                border: '1px solid rgba(0, 210, 255, 0.2)',
+                borderRadius: '8px',
+                padding: '15px',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{ color: '#00d2ff', marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="status-dot-green" style={{
+                    display: 'inline-block',
+                    width: '10px',
+                    height: '10px',
+                    backgroundColor: '#10b981',
+                    borderRadius: '50%',
+                    boxShadow: '0 0 8px #10b981'
+                  }}></span>
+                  Local AI Gateway Active
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#e2e8f0', lineHeight: 1.5 }}>
+                  This application is configured in <strong>DevOps/Local Mode</strong>. All cognitive services are routed through your local Ollama instance running the <strong>Gemma 4</strong> model.
+                </p>
+                <div style={{ marginTop: '12px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                  • Provider: <code>Ollama</code><br />
+                  • Model: <code>gemma4 (configured in backend .env)</code><br />
+                  • API Keys: <code>Disabled (No external billing or outbound connections)</code>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.5rem', opacity: 0.5 }}>
+                <label>Gemini API Key (External Mode - Disabled)</label>
                 <input 
                   type="password" 
                   name="geminiKey" 
-                  value={settings.geminiKey || ''} 
-                  onChange={handleChange} 
+                  value="" 
+                  disabled
                   className="cyber-input" 
-                  placeholder="AIzaSy..." 
+                  placeholder="Managed locally by backend AI Gateway..." 
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: '2rem' }}>
-                <label>Groq API Key (For Voice Transcription)</label>
+              <div className="form-group" style={{ marginBottom: '2rem', opacity: 0.5 }}>
+                <label>Groq API Key (External Mode - Disabled)</label>
                 <input 
                   type="password" 
                   name="groqKey" 
-                  value={settings.groqKey || ''} 
-                  onChange={handleChange} 
+                  value="" 
+                  disabled
                   className="cyber-input" 
-                  placeholder="gsk_..." 
+                  placeholder="Managed locally by backend AI Gateway..." 
                 />
-                <small style={{color: '#64748b', marginTop: '8px', display:'block'}}>Your keys are encrypted and stored locally in your browser. They are never saved to our database.</small>
+                <small style={{color: '#64748b', marginTop: '8px', display:'block'}}>External API keys are disabled in this build to guarantee zero outbound network leaks.</small>
               </div>
 
               <div className="form-group">

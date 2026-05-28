@@ -336,11 +336,11 @@ export default function Recordings() {
 
                   <button 
                     className="btn-primary transcribe-btn" 
-                    onClick={handleTranscribe}
-                    disabled={isTranscribing}
-                    style={{ flex: 1, marginLeft: '15px' }}
+                    onClick={() => alert("Audio mode is currently disabled because this version uses one local AI model only.")}
+                    disabled={true}
+                    style={{ flex: 1, marginLeft: '15px', opacity: 0.5, cursor: 'not-allowed' }}
                   >
-                    <FileText size={16}/> {isTranscribing ? 'Processing AI...' : 'Transcribe AI'}
+                    <FileText size={16}/> Transcribe AI (Disabled)
                   </button>
                 </div>
               </div>
@@ -373,7 +373,7 @@ export default function Recordings() {
                   </div>
                 ) : (
                   <div className="transcription-placeholder">
-                    <p>Click "Transcribe AI" to generate a highly accurate text log of this audio via J.A.R.V.I.S Deep Learning models.</p>
+                    <p style={{ color: '#ef4444' }}>Audio mode is currently disabled because this version uses one local AI model only.</p>
                   </div>
                 )}
               </div>

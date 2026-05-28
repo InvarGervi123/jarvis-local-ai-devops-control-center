@@ -65,18 +65,18 @@ export default function Home() {
           />
           <FeatureCard 
             icon={<BrainCircuit size={32} color="#00d2ff" />}
-            title="Gemini 2.5 Flash"
-            desc="Powered by Google's latest hyper-fast LLM architectures for real-time natural language processing."
+            title="Local Gemma 4"
+            desc="Powered by local Google Gemma 4 architecture via Ollama for zero network dependency and high privacy."
           />
           <FeatureCard 
             icon={<Server size={32} color="#00d2ff" />}
             title="MongoDB Sync"
-            desc="Your query history is securely synced to a centralized MongoDB Atlas cloud cluster via Node.js."
+            desc="Your query history is securely synced to a local or cloud MongoDB cluster via your Express gateway."
           />
           <FeatureCard 
             icon={<Shield size={32} color="#00d2ff" />}
-            title="Hybrid BYOK"
-            desc="Bring your own key (BYOK) securely. Keys are transmitted via encrypted headers, never saved to DB."
+            title="Local AI Gateway"
+            desc="All AI requests pass through a centralized Node.js gateway that routes directly to your local Ollama port."
           />
           <FeatureCard 
             icon={<Cpu size={32} color="#00d2ff" />}
@@ -103,8 +103,8 @@ export default function Home() {
             <p>Yes. All text selections and AI responses are securely transmitted via JWT-authenticated Node.js endpoints and stored in your private MongoDB cluster.</p>
           </div>
           <div className="faq-item glass-panel">
-            <h4>How does Hybrid BYOK work?</h4>
-            <p>You can input your own Google Gemini API key into the extension. It is saved locally in your browser and sent securely via headers to process AI requests.</p>
+            <h4>How does the Local AI Gateway work?</h4>
+            <p>Instead of sending your data to external paid APIs, all requests are securely proxied through your local Express backend to your local Ollama instance running Gemma 4. No outbound API keys are needed.</p>
           </div>
           <div className="faq-item glass-panel">
             <h4>Does it work on any website?</h4>

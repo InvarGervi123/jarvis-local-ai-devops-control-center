@@ -8,22 +8,24 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
+const localAiService = require('../services/localAiService');
+
 // POST /api/ai/process
-// Request from Chrome Extension (requires JWT Auth token synced from Jarvis Web App)
+// Request from Chrome Extension or Web App
 router.post('/process', auth, async (req, res) => {
   const { type, text } = req.body;
   const language = "hebrew"; // Could read from user settings
 
-  // Strict BYOK Logic: The user must provide their own key via the extension or web app settings.
-  const apiKeyToUse = req.header('x-gemini-key');
-  if (!apiKeyToUse) {
-    return res.status(400).json({ success: false, data: "Please configure your Gemini API Key in the settings." });
+  if (type === "transcribe") {
+    console.log("[AI Route] Transcription requested but audio feature is disabled in local mode.");
+    return res.status(400).json({
+      success: false,
+      data: "Audio mode is currently disabled because this version uses one local AI model only."
+    });
   }
 
-  const dynamicGenAI = new GoogleGenerativeAI(apiKeyToUse);
-
   let prompt = "";
-  let imageParts = [];
+  let formatJson = false;
 
   if (type === "summarize") {
     prompt = `Summarize the following text in ${language}, keep it concise:\n\n${text}`;
@@ -32,6 +34,7 @@ router.post('/process', auth, async (req, res) => {
   } else if (type === "rewrite") {
     prompt = `Rewrite the following text in ${language} to sound more professional and clear:\n\n${text}`;
   } else if (type === "review") {
+    formatJson = true;
     prompt = `Act as an expert copywriter. Analyze the following text and return ONLY a valid JSON object without any markdown wrapping. The JSON must have the following structure:
     {
       "score": <number between 0 and 100 representing overall quality>,
@@ -49,19 +52,14 @@ router.post('/process', auth, async (req, res) => {
     if (!image) return res.status(400).json({ success: false, data: "No image provided" });
     
     // image is expected to be a data URL: "data:image/jpeg;base64,/9j/4AAQ..."
-    const mimeType = image.match(/data:([^;]+);/)[1];
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+    let base64Data = "";
+    try {
+      base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+    } catch (e) {
+      return res.status(400).json({ success: false, data: "Invalid image format" });
+    }
 
-    imageParts = [
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType
-        }
-      }
-    ];
-
-    prompt = `You are an expert UX/UI designer. Analyze this screenshot of a user interface. Return ONLY a valid JSON object without any markdown wrapping. The JSON must have the following structure:
+    const visionPrompt = `You are an expert UX/UI designer. Analyze this screenshot of a user interface. Return ONLY a valid JSON object without any markdown wrapping. The JSON must have the following structure:
     {
       "elements": <estimated number of distinct UI elements, integer>,
       "contrastIssues": <number of potential contrast issues, integer>,
@@ -70,89 +68,52 @@ router.post('/process', auth, async (req, res) => {
         { "type": "Accessibility" | "Layout" | "UI Component", "title": "<short title>", "desc": "<description of finding>", "isWarning": <boolean> }
       ]
     }`;
-  } else if (type === "transcribe") {
-    const { audio } = req.body;
-    if (!audio) return res.status(400).json({ success: false, data: "No audio provided" });
-    
-    const groqKey = req.header('x-groq-key');
-    if (!groqKey) return res.status(400).json({ success: false, data: "Please configure your Groq API Key in settings." });
-    
-    const [header, base64Data] = audio.split('base64,');
-    if (!base64Data) return res.status(400).json({ success: false, data: "Invalid audio format" });
-    
+
     try {
-      // Create temp file for Groq Whisper
-      const buffer = Buffer.from(base64Data, 'base64');
-      const tempFilePath = path.join(os.tmpdir(), `audio_${Date.now()}.webm`);
-      fs.writeFileSync(tempFilePath, buffer);
-
-      const groq = new Groq({ apiKey: groqKey });
-      
-      // 1. Audio to Text via Whisper
-      const transcription = await groq.audio.transcriptions.create({
-        file: fs.createReadStream(tempFilePath),
-        model: "whisper-large-v3",
-        response_format: "json",
-      });
-      
-      fs.unlinkSync(tempFilePath); // Cleanup temp file
-      
-      // 2. Format with Llama 3.1
-      const completion = await groq.chat.completions.create({
-        messages: [
-          { role: "system", content: "You are an expert transcriber. Extract keywords and estimate confidence. Return ONLY a valid JSON object without any markdown wrapping: {\"text\": \"<exact original text>\", \"confidence\": 95, \"keywords\": [\"kw1\", \"kw2\"]}" },
-          { role: "user", content: `Format this transcription: ${transcription.text}` }
-        ],
-        model: "llama-3.1-8b-instant",
+      const aiResponseText = await localAiService.generateResponse({
+        prompt: visionPrompt,
+        images: [base64Data],
+        formatJson: true
       });
 
-      const aiResponseText = completion.choices[0].message.content;
-
-      // Save to MongoDB
       const newConversation = new Conversation({
         userId: req.user.id,
         actionType: type,
-        selectedText: "[Audio Transcription Request]",
+        selectedText: "[Image Analysis Request]",
         aiResponse: aiResponseText
       });
       await newConversation.save();
 
       return res.json({ success: true, data: aiResponseText });
     } catch (err) {
-      console.error("Groq Processing Error:", err);
-      return res.status(500).json({ success: false, data: "Groq AI Processing Error: " + err.message });
+      console.error("[AI Route Error] Vision processing failed:", err.message);
+      return res.status(400).json({
+        success: false,
+        data: "Image analysis is not supported by the current local setup/model. Please ensure you are running a vision-capable local model (e.g. llava)."
+      });
     }
   } else {
     return res.status(400).json({ success: false, data: "Invalid action type" });
   }
 
   try {
-    const model = dynamicGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    // If it's a vision or audio request, pass the parts and the prompt as an array
-    const requestPayload = (type === "vision" || type === "transcribe") ? [prompt, ...imageParts] : prompt;
-    
-    const result = await model.generateContent(requestPayload);
-    const response = await result.response;
-    const aiResponseText = response.text();
-
-    // Securely save into MongoDB (skip saving massive base64 files to DB)
-    let safeSelectedText = text;
-    if (type === "vision") safeSelectedText = "[Image Analysis Request]";
-    if (type === "transcribe") safeSelectedText = "[Audio Transcription Request]";
+    const aiResponseText = await localAiService.generateResponse({
+      systemPrompt: "You are J.A.R.V.I.S, an advanced local AI assistant.",
+      prompt,
+      formatJson
+    });
 
     const newConversation = new Conversation({
       userId: req.user.id,
       actionType: type,
-      selectedText: safeSelectedText,
+      selectedText: text,
       aiResponse: aiResponseText
     });
-
     await newConversation.save();
 
     res.json({ success: true, data: aiResponseText });
   } catch (err) {
-    console.error("Gemini API backend error:", err);
+    console.error("[AI Route Error] Processing failed:", err.message);
     res.status(500).json({ success: false, data: "Backend AI Processing Error: " + err.message });
   }
 });

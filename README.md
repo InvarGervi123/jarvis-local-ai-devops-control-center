@@ -1,88 +1,114 @@
-# J.A.R.V.I.S Web Operating System & Chrome Extension 🌐⚡
+# JARVIS Local AI DevOps Control Center 🌐⚡
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
-![React](https://img.shields.io/badge/react-18.0.0-61dafb.svg?logo=react)
-![Node.js](https://img.shields.io/badge/node.js-v18+-green.svg?logo=nodedotjs)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg?logo=mongodb)
+![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
+![React](https://img.shields.io/badge/React-19.0.0-61dafb.svg?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg?logo=nodedotjs)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)
+![Ollama](https://img.shields.io/badge/AI-Ollama%20%7C%20Gemma4-FF6B6B.svg)
 
-Welcome to the **J.A.R.V.I.S** (Synthetic Intelligent Virtual Reactive Assistant J-Core) Web OS! 
-This project is an advanced, Iron Man-inspired AI assistant platform that integrates a powerful **Chrome Extension** with a **Node.js/Express Backend** and a beautiful **React (Vite) Dashboard**.
+Welcome to the **JARVIS Local AI DevOps Control Center**! This branch is designed as a clean, local-first portfolio project demonstrating self-hosted local AI infrastructure, a DevOps/TechOps mindset, containerized services, built-in health checks, and zero dependency on external, paid AI APIs.
 
-## 🌟 Features
-
-- **Chrome Extension Integration:** Highlight text on any website and instantly Summarize, Explain, or Rewrite it using AI.
-- **Node.js Custom Backend:** All API keys (Google Gemini) are hidden securely in the server environment. No BYOK required in the client!
-- **JWT Authentication:** Secure token-based authentication.
-- **MongoDB Atlas Database:** All conversations and queries are securely synced and stored.
-- **Futuristic UI/UX:** Glassmorphism, neon highlights, Recharts for analytics, and Lucide React icons.
-- **Real-Time Analytics:** Track your tokens expended, time saved, and weekly AI throughput.
+The entire cognitive pipeline runs locally using **Ollama** and the **Gemma 4** model via a Node.js Express backend proxy gateway.
 
 ---
 
-## 🛠️ Tech Stack
+## 🌟 Key DevOps & TechOps Features
 
-- **Frontend:** React, Vite, CSS (Variables/Glassmorphism), React Router, Recharts, Lucide-React
-- **Backend:** Node.js, Express, Mongoose, JSONWebToken, BcryptJS
-- **Database:** MongoDB Atlas (Cloud)
-- **AI Core:** Google Generative AI (`gemini-2.5-flash`)
-- **Extension:** Manifest V3, Service Workers, Content Scripts
+- **Local AI Infrastructure**: All text-based chats, summaries, explanations, and copywriting reviews run locally via Ollama + Gemma 4.
+- **Backend AI Gateway**: Eliminates client-side API keys. The frontend communicates only with the Express gateway, which proxies and controls requests to Ollama.
+- **Docker-Ready Setup**: Orchestrated multi-container build using Docker Compose containing:
+  - `mongodb`: High-reliability database service
+  - `backend`: Express gateway with health telemetry
+  - `frontend`: React (Vite) user dashboard
+- **Linguistic Diagnostics (Health Checks)**: Pings `GET /api/health` to perform automatic reachability checks of the local Ollama instance and verifies if the target model is installed.
+- **Observability**: Added clean, structured server logs for startups, chosen providers/models, health statuses, and failed requests.
+- **Safe Fallbacks**: Audio modes are disabled cleanly with a system limitation message. Vision features return a clear error instead of crashing if the configured local model is not vision-capable.
+
+---
+
+## 🛠️ System Architecture
+
+```mermaid
+graph TD
+    User([User Browser / Extension]) -->|HTTP / JWT| Backend[Express Gateway Port 5000]
+    Backend -->|Check Health / Tags| Ollama[Ollama Server Port 11434]
+    Backend -->|Chat / Generate| Ollama
+    Backend -->|Sync History| MongoDB[(Local MongoDB Port 27017)]
+```
 
 ---
 
 ## 🚀 Quick Start Guide
 
-### 1. Database & Environment Setup
-Navigate to the `server` folder and configure your environment variables.
-```bash
-cd server
-npm install
-```
-Edit the `server/.env` file with your credentials:
+### 1. Install & Configure Ollama
+1. **Download Ollama**: Download and install [Ollama](https://ollama.com/) on your host machine.
+2. **Pull the Model**: Pull the lightweight Google Gemma model using your terminal:
+   ```bash
+   ollama pull gemma4
+   ```
+3. **Start Ollama**: Make sure Ollama is running (typically runs in the background at `http://localhost:11434`).
+
+### 2. Environment Configuration
+Create or configure the `server/.env` file. It should contain:
 ```env
 PORT=5000
-JWT_SECRET=your_super_secret_jwt_key
-MONGO_URI=mongodb+srv://<username>:<password>@cluster0.exmple.mongodb.net/jarvis?retryWrites=true&w=majority
-GEMINI_API_KEY=AIzaSy...
+JWT_SECRET=supersecretjarviskey1234
+MONGO_URI=mongodb://127.0.0.1:27017/jarvis
+
+# Local AI Configuration
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=gemma4
 ```
 
-### 2. Start the Backend Server
-Make sure you are in the `/server` directory:
+### 3. Run the Project
+You can build and start the entire stack (MongoDB, Backend, and Frontend) in one command:
 ```bash
-npm run dev
+docker compose up --build
 ```
-*(You should see `✅ MongoDB connected via Mongoose` in the console).*
+- The **Frontend Dashboard** will be accessible at: `http://localhost:5173`
+- The **Backend API** will be accessible at: `http://localhost:5000`
+- The **MongoDB database** runs containerized on port `27017`
 
-### 3. Start the Frontend Dashboard
-Open a second terminal, navigate to the root directory, and run the React app:
-```bash
-npm install
-npm run dev
-```
-*(The app will start on `http://localhost:5173`)*
-
-### 4. Install the Chrome Extension
-1. Open Google Chrome and go to `chrome://extensions`.
-2. Turn on **Developer mode** (top right corner).
-3. Click **Load unpacked** and select the `/extension` folder from this project.
-4. Pin the **J.A.R.V.I.S** extension to your toolbar.
+> [!NOTE]
+> When running inside Docker, the backend resolves the host's Ollama instance using `http://host.docker.internal:11434`. This is automatically configured inside `docker-compose.yml` via the `extra_hosts` option.
 
 ---
 
-## 💡 How It Works (The Data Flow)
+## 📡 Observability & System Diagnostics
 
-1. **Login:** Register/Login on `localhost:5173`. The system gives you a secure JWT token.
-2. **Auto-Sync:** A hidden content script automatically sends your token to the Chrome Extension's background storage.
-3. **Analyze:** Highlight text on Wikipedia (or any site), right-click, or use the extension popup to click "Summarize".
-4. **Proxy:** The extension sends a request to `localhost:5000/api/ai/process` with your JWT.
-5. **AI Processing:** The Node server securely asks Google Gemini for the answer.
-6. **Storage:** The server saves the prompt and response into MongoDB under your User ID.
-7. **Review:** Open your Dashboard (`/conversations` or `/analytics`) to view your synced history in real-time!
+### Health Check Endpoint
+To inspect the status of the local infrastructure, request:
+`GET http://localhost:5000/api/health`
+
+**Success Response (Ollama Connected and Model Present):**
+```json
+{
+  "status": "ok",
+  "service": "backend",
+  "aiProvider": "ollama",
+  "model": "gemma4",
+  "ollama": "connected",
+  "timestamp": "2026-05-28T07:00:00.000Z"
+}
+```
+
+**Warning Response (Ollama Connected but Model Missing):**
+```json
+{
+  "status": "warning",
+  "service": "backend",
+  "aiProvider": "ollama",
+  "model": "gemma4",
+  "ollama": "model_missing",
+  "timestamp": "2026-05-28T07:01:00.000Z",
+  "error": "Configured model 'gemma4' was not found. Run 'ollama pull gemma4' to install it."
+}
+```
 
 ---
 
-## 🔒 Security
-
-This architecture successfully bypasses the need for client-side Firebase billing constraints. The Google Gemini API key is *never* exposed to the browser. All AI processing acts through the Node.js reverse proxy.
-
-## 📝 License
-Proprietary / Closed Source. Created for the J.A.R.V.I.S initiative.
+## 🔒 Security & Data Compliance
+- **No outbound data leaks**: All AI processing remains on your local hardware.
+- **Token Protection**: Web-to-Extension communication utilizes short-lived JWT tokens passed inside custom headers.
+- **BYOK Bypassed**: Private developer API keys are deprecated from the settings screen. No credit card or cloud-billing configurations are required to run this app.
