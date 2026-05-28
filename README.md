@@ -1,4 +1,9 @@
 # JARVIS Local AI DevOps Control Center 🌐⚡
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/6573028b-432a-45a4-869f-70c309954c9c" />
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/b7957575-0966-4c1b-907e-7e877fd0ea6c" />
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/5fab7cfe-b4d6-47e6-9e7a-78b7d84a8648" />
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/f17a739e-e805-43f9-abb0-8d47de199f9e" />
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/e85f4060-3ded-4542-b074-1d9c9af77ce9" />
 
 ![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
 ![React](https://img.shields.io/badge/React-19.0.0-61dafb.svg?logo=react)
