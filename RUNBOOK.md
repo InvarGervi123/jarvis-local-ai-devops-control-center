@@ -72,13 +72,23 @@ This runbook is designed for system administrators, DevOps field engineers, and 
 ---
 
 ## 5. Docker Compose & Network Failures
-**Symptoms**: Database connection times out on startup. Docker build fails.
-- **Check 1: MongoDB container status**
+**Symptoms**: Database connection times out, docker build fails, or daemon connection error: `open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified`.
+
+- **Check 1: Docker Desktop Daemon is active**
+  - The error `open //./pipe/dockerDesktopLinuxEngine` means the Docker Desktop application is closed or the background VM/daemon is not running.
+  - Verify that **Docker Desktop** is launched and the status indicator in the bottom-left is green (Running).
+  - If Docker Desktop is frozen or unresponsive, terminate it via task manager or PowerShell (`Stop-Process -Name "Docker Desktop"`), then relaunch it.
+- **Check 2: MongoDB container status**
   - Verify that `jarvis_mongodb` is running and accessible on port `27017`.
   - Check database logs: `docker compose logs mongodb`.
-- **Check 2: Database URI resolving**
+- Check 3: Database URI resolving
   - When containerized, the backend must connect to `mongodb://mongodb:27017/jarvis` (using the container hostname), NOT `127.0.0.1:27017`.
+- **Check 4: Port 5000 / 5173 Conflicts**
+  - If a local Node backend is already running (`npm run dev` in the `server` directory) or a local Vite server is active, Docker will fail to bind to host ports `5000` or `5173`.
+  - You will see the error: `listen tcp 0.0.0.0:5000: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.`
+  - Stop the local bare-metal server(s) by going to their terminal window(s) and pressing `Ctrl + C`.
 - **Immediate Fix**:
+  - Stop any bare-metal dev servers running locally, launch **Docker Desktop** from your Windows Start Menu, wait for the green indicator, and run `docker compose up --build` again.
   - Ensure the `MONGO_URI` environment variable inside `docker-compose.yml` points to the service name: `mongodb://mongodb:27017/jarvis`.
 
 ---
